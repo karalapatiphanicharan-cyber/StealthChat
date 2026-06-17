@@ -1,0 +1,16 @@
+{
+  "name": "stealthchat",
+  "version": "1.0.0",
+  "description": "Minimalist, dark-themed, real-time room-based chat application",
+  "scripts": {
+    "client:install": "npm install --prefix client",
+    "server:install": "npm install --prefix server",
+    "install-all": "npm run client:install && npm run server:install",
+    "client:dev": "npm run dev --prefix client",
+    "server:dev": "npm run dev --prefix server",
+    "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
