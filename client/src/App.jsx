@@ -7,7 +7,7 @@ import Room from './pages/Room';
 
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />

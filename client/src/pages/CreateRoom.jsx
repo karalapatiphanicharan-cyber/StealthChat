@@ -4,15 +4,35 @@ import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { ArrowLeft, MessageSquarePlus } from 'lucide-react';
+import socketService from '../services/socketService';
 
 const CreateRoom = () => {
   const [nickname, setNickname] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleCreate = (e) => {
     e.preventDefault();
-    if (!nickname.trim()) return;
-    navigate('/room/DEMO123');
+    if (!nickname.trim()) {
+      setError('Nickname is required');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    const socket = socketService.connect();
+    socket.emit('create-room', { nickname }, (response) => {
+      setIsLoading(false);
+      if (response.error) {
+        setError(response.error);
+      } else if (response.roomCode) {
+        // Store nickname in sessionStorage to use in the Room page
+        sessionStorage.setItem('stealthchat_nickname', nickname);
+        navigate(`/room/${response.roomCode}`);
+      }
+    });
   };
 
   return (
@@ -41,11 +61,16 @@ const CreateRoom = () => {
                 label="Your Nickname"
                 placeholder="Enter nickname..."
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                required
+                onChange={(e) => {
+                  setNickname(e.target.value);
+                  setError('');
+                }}
               />
-              <Button type="submit" className="w-full">
-                Create Room
+
+              {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Creating...' : 'Create Room'}
               </Button>
             </form>
           </div>
