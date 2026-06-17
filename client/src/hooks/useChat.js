@@ -18,7 +18,7 @@ export const useChat = (roomCode, nickname) => {
             setError(response.error);
           } else {
             setMessages(response.messages || []);
-            setParticipantCount(response.participantCount || 0);
+            setParticipantCount(response.participantCount || 1);
           }
         });
       }

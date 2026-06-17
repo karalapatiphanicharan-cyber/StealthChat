@@ -15,6 +15,8 @@ const socketHandler = (io) => {
           const systemMsg = roomUtils.addSystemMessageToRoom(currentRoomCode, `${nickname} left the room.`);
           socket.to(currentRoomCode).emit('receive-message', systemMsg);
 
+          console.log(`${nickname} left room: ${currentRoomCode}`);
+
           if (room.users.size > 0) {
             io.to(currentRoomCode).emit('update-participants', { count: room.users.size });
           }

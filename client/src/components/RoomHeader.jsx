@@ -16,9 +16,10 @@ const RoomHeader = ({ roomCode, participantCount }) => {
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Room Code</p>
           <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-mono font-bold text-accent">{roomCode || '------'}</h2>
+            <h2 className="text-xl font-mono font-bold text-accent uppercase">{roomCode || '------'}</h2>
             <button
               onClick={handleCopy}
+              aria-label="Copy Room Code"
               className="p-1.5 hover:bg-white/5 rounded transition-colors text-gray-500 hover:text-white relative group"
               title="Copy Room Code"
             >
