@@ -4,16 +4,41 @@ import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { ArrowLeft, LogIn } from 'lucide-react';
+import socketService from '../services/socketService';
 
 const JoinRoom = () => {
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleJoin = (e) => {
     e.preventDefault();
-    if (!nickname.trim() || !roomCode.trim()) return;
-    navigate(`/room/${roomCode.toUpperCase()}`);
+    if (!nickname.trim()) {
+      setError('Nickname is required');
+      return;
+    }
+    if (!roomCode.trim()) {
+      setError('Room code is required');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    const socket = socketService.connect();
+    const formattedCode = roomCode.trim().toUpperCase();
+
+    socket.emit('join-room', { nickname, roomCode: formattedCode }, (response) => {
+      setIsLoading(false);
+      if (response.error) {
+        setError(response.error);
+      } else {
+        sessionStorage.setItem('stealthchat_nickname', nickname);
+        navigate(`/room/${formattedCode}`);
+      }
+    });
   };
 
   return (
@@ -42,19 +67,26 @@ const JoinRoom = () => {
                 label="Your Nickname"
                 placeholder="Enter nickname..."
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                required
+                onChange={(e) => {
+                  setNickname(e.target.value);
+                  setError('');
+                }}
               />
               <Input
                 label="Room Code"
                 placeholder="Enter room code..."
                 value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
-                required
+                onChange={(e) => {
+                  setRoomCode(e.target.value);
+                  setError('');
+                }}
                 className="uppercase font-mono tracking-widest"
               />
-              <Button type="submit" className="w-full">
-                Join Room
+
+              {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Joining...' : 'Join Room'}
               </Button>
             </form>
           </div>

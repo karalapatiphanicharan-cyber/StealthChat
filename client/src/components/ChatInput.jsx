@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Send } from 'lucide-react';
 import Button from './Button';
 
-const ChatInput = ({ value, onChange, onSend }) => {
+const ChatInput = ({ onSend }) => {
+  const [value, setValue] = useState('');
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (value.trim()) onSend();
+    if (value.trim()) {
+      onSend(value.trim());
+      setValue('');
+    }
   };
 
   return (
@@ -13,11 +18,11 @@ const ChatInput = ({ value, onChange, onSend }) => {
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => setValue(e.target.value)}
         placeholder="Type a message..."
         className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all text-white"
       />
-      <Button type="submit" className="!p-3 rounded-xl">
+      <Button type="submit" className="!p-3 rounded-xl" disabled={!value.trim()}>
         <Send className="w-5 h-5" />
       </Button>
     </form>
