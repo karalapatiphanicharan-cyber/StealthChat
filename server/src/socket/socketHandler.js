@@ -108,11 +108,13 @@ const socketHandler = (io) => {
       if (!currentRoomCode || !currentUserNickname) {
         return callback({ error: 'Not in a room' });
       }
-      if (!text || text.trim() === '') {
+
+      const trimmedText = text ? text.trim() : '';
+      if (trimmedText === '') {
         return callback({ error: 'Message cannot be empty' });
       }
 
-      const message = roomUtils.addMessageToRoom(currentRoomCode, currentUserNickname, text);
+      const message = roomUtils.addMessageToRoom(currentRoomCode, currentUserNickname, trimmedText);
       if (message) {
         io.to(currentRoomCode).emit('receive-message', message);
         callback({ success: true });

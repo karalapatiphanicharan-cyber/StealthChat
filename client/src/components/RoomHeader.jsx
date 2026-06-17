@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Copy, Users } from 'lucide-react';
+import { Shield, Copy, Users, Eye, EyeOff } from 'lucide-react';
 
 const RoomHeader = ({ roomCode, participantCount }) => {
   const [copied, setCopied] = useState(false);
+  const [isHidden, setIsHidden] = useState(true);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(roomCode);
@@ -16,20 +17,32 @@ const RoomHeader = ({ roomCode, participantCount }) => {
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Room Code</p>
           <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-mono font-bold text-accent uppercase">{roomCode || '------'}</h2>
-            <button
-              onClick={handleCopy}
-              aria-label="Copy Room Code"
-              className="p-1.5 hover:bg-white/5 rounded transition-colors text-gray-500 hover:text-white relative group"
-              title="Copy Room Code"
-            >
-              <Copy className="w-4 h-4" />
-              {copied && (
-                <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-accent text-white text-[10px] rounded font-bold">
-                  Copied!
-                </span>
-              )}
-            </button>
+            <h2 className="text-xl font-mono font-bold text-accent uppercase tracking-wider">
+              {isHidden ? '••••••' : (roomCode || '------')}
+            </h2>
+            <div className="flex items-center bg-white/5 rounded-lg p-0.5 ml-1">
+              <button
+                onClick={() => setIsHidden(!isHidden)}
+                aria-label={isHidden ? "Reveal Room Code" : "Hide Room Code"}
+                className="p-1.5 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white group"
+                title={isHidden ? "Reveal" : "Hide"}
+              >
+                {isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={handleCopy}
+                aria-label="Copy Room Code"
+                className="p-1.5 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white relative group"
+                title="Copy Room Code"
+              >
+                <Copy className="w-4 h-4" />
+                {copied && (
+                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-accent text-white text-[10px] rounded font-bold">
+                    Copied!
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
