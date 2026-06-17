@@ -12,7 +12,6 @@ const CreateRoom = () => {
   const handleCreate = (e) => {
     e.preventDefault();
     if (!nickname.trim()) return;
-    console.log('Creating room for:', nickname);
     navigate('/room/DEMO123');
   };
 
