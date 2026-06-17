@@ -1,28 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import Button from './Button';
 
 const ChatInput = ({ onSend }) => {
   const [value, setValue] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSend = () => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      onSend(trimmed);
+      setValue('');
+      inputRef.current?.focus();
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (value.trim()) {
-      onSend(value.trim());
-      setValue('');
+    handleSend();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center space-x-2 p-4 bg-dark-card border-t border-white/5">
-      <input
-        type="text"
+    <form onSubmit={handleSubmit} className="flex items-end space-x-2 p-4 bg-dark-card border-t border-white/5">
+      <textarea
+        ref={inputRef}
+        rows="1"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setValue(e.target.value);
+          e.target.style.height = 'auto';
+          e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+        }}
+        onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all text-white"
+        className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all text-white resize-none max-h-[150px] overflow-y-auto"
       />
-      <Button type="submit" className="!p-3 rounded-xl" disabled={!value.trim()}>
+      <Button type="submit" className="!p-3 rounded-xl mb-0.5" disabled={!value.trim()}>
         <Send className="w-5 h-5" />
       </Button>
     </form>
