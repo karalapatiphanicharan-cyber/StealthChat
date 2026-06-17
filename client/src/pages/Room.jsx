@@ -10,7 +10,6 @@ const Room = () => {
 
   const handleSend = () => {
     if (!message.trim()) return;
-    console.log('Sending message:', message);
     setMessage('');
   };
 

@@ -13,7 +13,6 @@ const JoinRoom = () => {
   const handleJoin = (e) => {
     e.preventDefault();
     if (!nickname.trim() || !roomCode.trim()) return;
-    console.log('Joining room:', roomCode, 'as:', nickname);
     navigate(`/room/${roomCode.toUpperCase()}`);
   };
 
