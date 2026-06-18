@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Copy, Users, Eye, EyeOff, LogOut, Bell, BellOff } from 'lucide-react';
+import { Shield, Copy, Users, Eye, EyeOff, LogOut, Bell, BellOff, Search } from 'lucide-react';
 import { usePrivacy } from '../context/PrivacyContext';
 
-const RoomHeader = ({ roomCode, participantCount, notificationsEnabled, setNotificationsEnabled }) => {
+const RoomHeader = ({ roomCode, participantCount, notificationsEnabled, setNotificationsEnabled, onToggleParticipants, onToggleSearch }) => {
   const [copied, setCopied] = useState(false);
   const [isHidden, setIsHidden] = useState(true);
   const { isPrivacyMode, togglePrivacyMode } = usePrivacy();
@@ -50,16 +50,27 @@ const RoomHeader = ({ roomCode, participantCount, notificationsEnabled, setNotif
 
         <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
 
-        <div className="hidden sm:flex flex-col">
-          <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Participants</p>
+        <button
+          onClick={onToggleParticipants}
+          className="hidden sm:flex flex-col text-left group hover:opacity-80 transition-opacity"
+        >
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-bold group-hover:text-accent transition-colors">Participants</p>
           <div className="flex items-center space-x-2 text-gray-300">
             <Users className="w-4 h-4 text-accent" />
             <span className="font-bold">{participantCount || 0} / 15</span>
           </div>
-        </div>
+        </button>
       </div>
 
       <div className="flex items-center space-x-2">
+        <button
+          onClick={onToggleSearch}
+          className="p-2 rounded-full hover:bg-white/5 text-gray-400 transition-colors"
+          title="Search Messages"
+        >
+          <Search className="w-4 h-4" />
+        </button>
+
         <button
           onClick={() => setNotificationsEnabled(!notificationsEnabled)}
           className={`p-2 rounded-full transition-colors border ${notificationsEnabled ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import RoomHeader from '../components/RoomHeader';
-import { Shield } from 'lucide-react';
+import { Shield, Smile, Search, X, FileText, Download } from 'lucide-react';
 import ChatInput from '../components/ChatInput';
 import EmptyState from '../components/EmptyState';
+import ParticipantsPanel from '../components/ParticipantsPanel';
 import { useChat } from '../hooks/useChat';
 import { usePrivacy } from '../context/PrivacyContext';
+import socketService from '../services/socketService';
 
 const Room = () => {
   const { roomCode } = useParams();
@@ -13,9 +15,14 @@ const Room = () => {
   const nickname = sessionStorage.getItem('stealthchat_nickname');
   const messagesEndRef = useRef(null);
 
-  const { messages, participantCount, error, sendMessage } = useChat(roomCode, nickname);
+  const { messages, participantCount, participants, typers, error, sendMessage, setTyping, sendReaction, uploadFile } = useChat(roomCode, nickname);
   const messagesContainerRef = useRef(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isWindowFocused, setIsWindowFocused] = useState(true);
+  const [searchQuery, setSearchBar] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isPrivacyMode } = usePrivacy();
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     const saved = localStorage.getItem('stealthchat_notifications');
@@ -54,39 +61,128 @@ const Room = () => {
     setShouldAutoScroll(isAtBottom);
   };
 
+  const handleDownload = (fileId, fileName) => {
+    socketService.emit('get-file', { fileId }, (response) => {
+      if (response.file) {
+        const link = document.createElement('a');
+        link.href = response.file.data;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        alert(response.error || 'Failed to download file');
+      }
+    });
+  };
+
+  useEffect(() => {
+    const handleFocus = () => {
+      setIsWindowFocused(true);
+      setUnreadCount(0);
+    };
+    const handleBlur = () => setIsWindowFocused(false);
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsParticipantsOpen(false);
+        setIsSearchOpen(false);
+        setSearchBar('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   useEffect(() => {
     if (shouldAutoScroll) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (isWindowFocused) setUnreadCount(0);
     }
 
-    // Play notification sound for new messages if enabled
+    // Increment unread if not auto-scrolled or window not focused
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (notificationsEnabled && lastMessage.sender !== nickname && lastMessage.type === 'chat') {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
-        audio.play().catch(e => console.log('Audio play failed:', e));
+      if (lastMessage.sender !== nickname && lastMessage.type !== 'system') {
+        if (!shouldAutoScroll || !isWindowFocused) {
+          setUnreadCount(prev => prev + 1);
+        }
+
+        // Play notification sound for new messages if enabled
+        if (notificationsEnabled && lastMessage.type === 'chat') {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+          audio.play().catch(e => console.log('Audio play failed:', e));
+        }
       }
     }
-  }, [messages, shouldAutoScroll, notificationsEnabled, nickname]);
+  }, [messages, shouldAutoScroll, notificationsEnabled, nickname, isWindowFocused]);
+
+  const filteredMessages = messages.filter(msg =>
+    (msg.text && msg.text.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (msg.sender && msg.sender.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
-    <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full bg-dark-card/50 border-x border-white/5 shadow-2xl">
+    <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full bg-dark-card/50 border-x border-white/5 shadow-2xl overflow-hidden relative">
       <RoomHeader
         roomCode={roomCode}
         participantCount={participantCount}
         notificationsEnabled={notificationsEnabled}
         setNotificationsEnabled={setNotificationsEnabled}
+        onToggleParticipants={() => setIsParticipantsOpen(!isParticipantsOpen)}
+        onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
       />
 
+      {isSearchOpen && (
+        <div className="absolute top-16 left-0 right-0 z-30 bg-dark-card/95 backdrop-blur-sm border-b border-white/10 p-2 flex items-center space-x-2 animate-in slide-in-from-top duration-200">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search messages..."
+              value={searchQuery}
+              onChange={(e) => setSearchBar(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent/50"
+            />
+          </div>
+          <button
+            onClick={() => { setIsSearchOpen(false); setSearchBar(''); }}
+            className="p-2 hover:bg-white/5 rounded-lg text-gray-500"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col min-w-0">
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth min-h-0 space-y-4"
+        className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth space-y-4"
       >
-        {messages.length === 0 ? (
-          <EmptyState />
+        {filteredMessages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
+            {searchQuery ? (
+               <>
+                 <Search className="w-12 h-12 opacity-20" />
+                 <p>No results found for "{searchQuery}"</p>
+               </>
+            ) : (
+               <EmptyState />
+            )}
+          </div>
         ) : (
-          messages.map((msg) => (
+          filteredMessages.map((msg) => (
             <div
               key={msg.id}
               className={`flex flex-col ${msg.type === 'system' ? 'items-center' : (msg.sender === nickname ? 'items-end' : 'items-start')}`}
@@ -107,8 +203,73 @@ const Room = () => {
                       You
                     </p>
                   )}
-                  <div className={`px-4 py-2 rounded-2xl ${msg.sender === nickname ? 'bg-accent text-white rounded-tr-none' : 'bg-white/5 text-gray-200 rounded-tl-none'}`}>
-                    <p className="text-sm leading-relaxed">{msg.text}</p>
+                  <div className="relative group/msg">
+                    <div className={`px-4 py-2 rounded-2xl transition-all ${msg.sender === nickname ? 'bg-accent text-white rounded-tr-none' : 'bg-white/5 text-gray-200 rounded-tl-none'} ${searchQuery && msg.text && msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ? 'ring-2 ring-accent ring-offset-2 ring-offset-dark' : ''}`}>
+                      {msg.type === 'file' && msg.file ? (
+                        <div className="space-y-2 min-w-[200px]">
+                          {msg.file.type.startsWith('image/') ? (
+                            <div className="rounded-lg overflow-hidden border border-white/10 bg-black/20">
+                              <img
+                                src="#"
+                                alt={msg.file.name}
+                                className="max-w-full h-auto max-h-[300px] object-contain cursor-pointer"
+                                onLoad={(e) => {
+                                   socketService.emit('get-file', { fileId: msg.file.fileId }, (res) => {
+                                     if (res.file) e.target.src = res.file.data;
+                                   });
+                                }}
+                                onClick={(e) => window.open(e.target.src, '_blank')}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg border border-white/10">
+                              <FileText className="w-8 h-8 text-accent" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{msg.file.name}</p>
+                                <p className="text-[10px] text-gray-500 uppercase">{msg.file.type.split('/')[1] || 'FILE'}</p>
+                              </div>
+                              <button
+                                onClick={() => handleDownload(msg.file.fileId, msg.file.name)}
+                                className="p-2 hover:bg-white/10 rounded-full text-accent transition-colors"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm leading-relaxed">{msg.text}</p>
+                      )}
+                    </div>
+
+                    {/* Reaction trigger */}
+                    <div className={`absolute top-0 ${msg.sender === nickname ? 'right-full mr-2' : 'left-full ml-2'} hidden group-hover/msg:flex items-center bg-dark-card border border-white/10 rounded-full p-1 shadow-xl z-10 animate-in fade-in zoom-in duration-200`}>
+                      {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => sendReaction(msg.id, emoji)}
+                          className="p-1 hover:bg-white/5 rounded-full transition-transform hover:scale-125 text-sm"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Reaction display */}
+                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                      <div className={`flex flex-wrap gap-1 mt-1 ${msg.sender === nickname ? 'justify-end' : 'justify-start'}`}>
+                        {Object.entries(msg.reactions).map(([emoji, users]) => users.length > 0 && (
+                          <button
+                            key={emoji}
+                            onClick={() => sendReaction(msg.id, emoji)}
+                            className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${users.includes(nickname) ? 'bg-accent/20 border-accent/50 text-accent' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
+                          >
+                            <span>{emoji}</span>
+                            <span>{users.length}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <p className="text-[10px] text-gray-600 px-1">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -118,10 +279,38 @@ const Room = () => {
             </div>
           ))
           )}
+          {typers && typers.length > 0 && (
+            <div className="flex items-center space-x-2 text-xs text-gray-500 italic animate-pulse">
+              <span className="w-1.5 h-1.5 bg-accent rounded-full"></span>
+              <p>{typers.join(', ')} {typers.length === 1 ? 'is' : 'are'} typing...</p>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
-      <ChatInput onSend={sendMessage} disabled={isPrivacyMode} />
+      <ChatInput onSend={sendMessage} disabled={isPrivacyMode} onTyping={setTyping} onUpload={uploadFile} />
+      </div>
+
+      {!shouldAutoScroll && unreadCount > 0 && (
+        <button
+          onClick={() => {
+            setShouldAutoScroll(true);
+            setUnreadCount(0);
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-accent text-white px-4 py-2 rounded-full shadow-lg text-xs font-bold animate-bounce flex items-center space-x-2 z-20"
+        >
+          <span>{unreadCount} New {unreadCount === 1 ? 'Message' : 'Messages'}</span>
+        </button>
+      )}
+
+
+      <ParticipantsPanel
+        participants={participants}
+        isOpen={isParticipantsOpen}
+        onClose={() => setIsParticipantsOpen(false)}
+      />
+      </div>
     </div>
   );
 };
