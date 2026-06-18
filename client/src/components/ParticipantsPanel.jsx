@@ -5,7 +5,7 @@ const ParticipantsPanel = ({ participants, isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="w-64 bg-dark-card border-l border-white/5 flex flex-col animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-y-0 right-0 w-full sm:w-80 sm:relative bg-dark-card border-l border-white/5 flex flex-col animate-in slide-in-from-right duration-300 z-[110] sm:z-auto shadow-2xl sm:shadow-none">
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Users className="w-4 h-4 text-accent" />

@@ -85,8 +85,8 @@ const JoinRoom = () => {
 
               {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Joining...' : 'Join Room'}
+              <Button type="submit" className="w-full" loading={isLoading}>
+                Join Room
               </Button>
             </form>
           </div>

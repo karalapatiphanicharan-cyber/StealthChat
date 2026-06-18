@@ -7,6 +7,7 @@ export const useChat = (roomCode, nickname) => {
   const [participants, setParticipants] = useState([]);
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [typers, setTypers] = useState(new Set());
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export const useChat = (roomCode, nickname) => {
             setMessages(response.messages || []);
             setParticipantCount(response.participantCount || 1);
             setParticipants(response.participants || [nickname]);
+            setIsReconnecting(false);
           }
         });
       }
@@ -38,6 +40,11 @@ export const useChat = (roomCode, nickname) => {
 
     socket.on('disconnect', () => {
       setIsConnected(false);
+      setIsReconnecting(true);
+    });
+
+    socket.on('reconnect', () => {
+      setIsReconnecting(false);
     });
 
     socket.on('receive-message', (message) => {
@@ -126,6 +133,7 @@ export const useChat = (roomCode, nickname) => {
     typers: Array.from(typers),
     error,
     isConnected,
+    isReconnecting,
     sendMessage,
     sendReaction,
     setTyping,

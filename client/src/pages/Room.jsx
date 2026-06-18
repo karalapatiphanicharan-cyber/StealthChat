@@ -8,6 +8,7 @@ import ParticipantsPanel from '../components/ParticipantsPanel';
 import { useChat } from '../hooks/useChat';
 import { usePrivacy } from '../context/PrivacyContext';
 import socketService from '../services/socketService';
+import { formatTimestamp } from '../utils/formatTime';
 
 const FileImage = ({ fileId, alt }) => {
   const [src, setSrc] = useState(null);
@@ -42,7 +43,7 @@ const Room = () => {
   const nickname = sessionStorage.getItem('stealthchat_nickname');
   const messagesEndRef = useRef(null);
 
-  const { messages, participantCount, participants, typers, error, sendMessage, setTyping, sendReaction, uploadFile } = useChat(roomCode, nickname);
+  const { messages, participantCount, participants, typers, error, isReconnecting, isConnected, sendMessage, setTyping, sendReaction, uploadFile } = useChat(roomCode, nickname);
   const messagesContainerRef = useRef(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
@@ -182,6 +183,19 @@ const Room = () => {
         onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
       />
 
+      {isReconnecting && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-yellow-500/90 text-black px-4 py-1.5 rounded-full text-xs font-bold shadow-xl animate-bounce flex items-center space-x-2">
+           <span className="w-2 h-2 bg-black rounded-full animate-pulse"></span>
+           <span>Reconnecting...</span>
+        </div>
+      )}
+
+      {!isReconnecting && !isConnected && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-red-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-xl animate-pulse">
+           Connection Lost
+        </div>
+      )}
+
       {isSearchOpen && (
         <div className="absolute top-16 left-0 right-0 z-30 bg-dark-card/95 backdrop-blur-sm border-b border-white/10 p-2 flex items-center space-x-2 animate-in slide-in-from-top duration-200">
           <div className="relative flex-1">
@@ -212,12 +226,9 @@ const Room = () => {
         className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth space-y-4"
       >
         {filteredMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
+          <div className="flex flex-col items-center justify-center h-full">
             {searchQuery ? (
-               <>
-                 <Search className="w-12 h-12 opacity-20" />
-                 <p>No results found for "{searchQuery}"</p>
-               </>
+               <EmptyState message="No results found" subtext={`We couldn't find anything matching "${searchQuery}"`} />
             ) : (
                <EmptyState />
             )}
@@ -226,7 +237,7 @@ const Room = () => {
           filteredMessages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex flex-col ${msg.type === 'system' ? 'items-center' : (msg.sender === nickname ? 'items-end' : 'items-start')}`}
+              className={`flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.type === 'system' ? 'items-center' : (msg.sender === nickname ? 'items-end' : 'items-start')}`}
             >
               {msg.type === 'system' ? (
                 <p className="text-xs text-gray-500 font-medium py-2 px-4 bg-white/5 rounded-full uppercase tracking-widest">
@@ -322,7 +333,7 @@ const Room = () => {
                     )}
                   </div>
                   <p className="text-[10px] text-gray-600 px-1">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatTimestamp(msg.timestamp)}
                   </p>
                 </div>
               )}

@@ -43,7 +43,19 @@ const roomUtils = {
   addUserToRoom: (code, socketId, nickname) => {
     const room = rooms.get(code.toUpperCase());
     if (!room) return { error: 'Room not found' };
+
+    // Check if nickname is already in use
+    const isNicknameTaken = Array.from(room.users.values()).some(u => u.nickname.toLowerCase() === nickname.toLowerCase());
+    if (isNicknameTaken) return { error: 'Nickname already in use in this room' };
+
     if (room.users.size >= 15) return { error: 'Room is full' };
+
+    // Cancel inactivity timer if user joins
+    if (room.inactivityTimer) {
+      clearTimeout(room.inactivityTimer);
+      room.inactivityTimer = null;
+      console.log(`Inactivity timer cancelled for room: ${code}`);
+    }
 
     room.users.set(socketId, { nickname });
     return { room };
@@ -56,9 +68,16 @@ const roomUtils = {
     const user = room.users.get(socketId);
     room.users.delete(socketId);
 
-    // Cleanup empty rooms
+    // Cleanup empty rooms after 30 minutes
     if (room.users.size === 0) {
-      rooms.delete(code.toUpperCase());
+      if (room.inactivityTimer) clearTimeout(room.inactivityTimer);
+
+      room.inactivityTimer = setTimeout(() => {
+        rooms.delete(code.toUpperCase());
+        console.log(`Room ${code} deleted due to 30 minutes of inactivity.`);
+      }, 30 * 60 * 1000); // 30 minutes
+
+      console.log(`Inactivity timer started for room: ${code}`);
     }
 
     return { room, user };

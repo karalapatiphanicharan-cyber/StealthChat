@@ -1,11 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
-import { Plus, Users, Shield, Lock, Zap, MessageCircle } from 'lucide-react';
+import { Plus, Users, Shield, Lock, Zap, MessageCircle, Keyboard, X, Info } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  const shortcuts = [
+    { key: "Enter", desc: "Send message" },
+    { key: "Shift + Enter", desc: "New line" },
+    { key: "Escape", desc: "Close dialogs/picker" },
+    { key: "Ctrl + F", desc: "Search chat" },
+    { key: "📎", desc: "Attach image/PDF (Max 25MB)" },
+    { key: "👁", desc: "Show/Hide room code" },
+    { key: "🔔", desc: "Toggle notifications" },
+    { key: "🛡 Privacy Mode", desc: "Hide interface instantly" },
+    { key: "🚪 Leave", desc: "Exit room safely" },
+  ];
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 py-20 relative overflow-hidden">
@@ -52,6 +65,14 @@ const Home = () => {
             <Users className="w-5 h-5 mr-3" />
             Join Existing Room
           </Button>
+          <Button
+            variant="ghost"
+            className="w-full sm:w-auto h-16 px-6 text-gray-400 hover:text-white"
+            onClick={() => setShowShortcuts(true)}
+          >
+            <Keyboard className="w-5 h-5 mr-2" />
+            Keyboard Shortcuts
+          </Button>
         </div>
 
         <div className="pt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -91,6 +112,49 @@ const Home = () => {
            </div>
         </div>
       </div>
+
+      {/* Shortcuts Modal */}
+      {showShortcuts && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowShortcuts(false)}></div>
+          <div className="relative w-full max-w-lg bg-dark-card border border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <Keyboard className="w-6 h-6 text-accent" />
+                </div>
+                <h2 className="text-xl font-bold">Keyboard Shortcuts</h2>
+              </div>
+              <button onClick={() => setShowShortcuts(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-500 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                {shortcuts.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-gray-400 text-sm">{s.desc}</span>
+                    <kbd className="px-2 py-1 bg-white/10 rounded text-[10px] font-mono text-accent border border-white/10 shadow-lg">
+                      {s.key}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center space-x-2 p-4 bg-accent/5 rounded-2xl border border-accent/10 mt-4">
+                <Info className="w-4 h-4 text-accent shrink-0" />
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  StealthChat is designed for speed and privacy. Use these shortcuts to navigate the application without leaving your keyboard.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 bg-black/20 text-center">
+               <Button onClick={() => setShowShortcuts(false)} className="w-full">Got it</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
