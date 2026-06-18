@@ -79,8 +79,8 @@ export const useChat = (roomCode, nickname) => {
     };
   }, [roomCode, nickname]);
 
-  const sendMessage = useCallback((text, type = 'chat', fileData = null) => {
-    socketService.emit('send-message', { text, type, fileData }, (response) => {
+  const sendMessage = useCallback((text, type = 'chat', fileData = null, theme = 'blue') => {
+    socketService.emit('send-message', { text, type, fileData, theme }, (response) => {
       if (response.error) {
         console.error('Failed to send message:', response.error);
       }
@@ -113,14 +113,15 @@ export const useChat = (roomCode, nickname) => {
     }
   }, []);
 
-  const uploadFile = useCallback((file, callback) => {
+  const uploadFile = useCallback((file, theme = 'blue', callback) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const data = e.target.result;
       socketService.emit('upload-file', {
         name: file.name,
         type: file.type,
-        data
+        data,
+        theme
       }, callback);
     };
     reader.readAsDataURL(file);

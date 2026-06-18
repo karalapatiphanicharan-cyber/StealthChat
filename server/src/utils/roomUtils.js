@@ -44,9 +44,14 @@ const roomUtils = {
     const room = rooms.get(code.toUpperCase());
     if (!room) return { error: 'Room not found' };
 
-    // Check if nickname is already in use
-    const isNicknameTaken = Array.from(room.users.values()).some(u => u.nickname.toLowerCase() === nickname.toLowerCase());
-    if (isNicknameTaken) return { error: 'Nickname already in use in this room' };
+    // Check if nickname is already in use by a DIFFERENT socket
+    const existingUserWithNickname = Array.from(room.users.entries()).find(
+      ([sid, u]) => u.nickname.toLowerCase() === nickname.toLowerCase() && sid !== socketId
+    );
+
+    if (existingUserWithNickname) {
+      return { error: 'Nickname already in use in this room' };
+    }
 
     if (room.users.size >= 15) return { error: 'Room is full' };
 
@@ -83,7 +88,7 @@ const roomUtils = {
     return { room, user };
   },
 
-  addMessageToRoom: (code, nickname, text, type = 'chat', fileData = null) => {
+  addMessageToRoom: (code, nickname, text, type = 'chat', fileData = null, theme = 'blue') => {
     const room = rooms.get(code.toUpperCase());
     if (!room) return null;
 
@@ -93,6 +98,7 @@ const roomUtils = {
       text,
       timestamp: new Date().toISOString(),
       type,
+      theme,
       reactions: {}, // emoji -> Set(socketId)
       file: fileData
     };

@@ -63,22 +63,50 @@ const socketHandler = (io) => {
       }
 
       const code = roomCode.toUpperCase();
+      const room = roomUtils.getRoom(code);
 
-      // If already in this room, just return current state
-      if (currentRoomCode === code) {
-        const room = roomUtils.getRoom(code);
-        if (room) {
-          return callback({
-            roomCode: code,
-            messages: room.messages,
-            participantCount: room.users.size
-          });
+      if (!room) {
+        return callback({ error: 'Room not found' });
+      }
+
+      // If already in this room with same socket, just return current state
+      if (currentRoomCode === code && currentUserNickname === nickname) {
+        const participants = Array.from(room.users.values()).map(u => u.nickname);
+        const serializedMessages = room.messages.map(msg => ({
+          ...msg,
+          reactions: Object.fromEntries(
+            Object.entries(msg.reactions || {}).map(([emoji, set]) => [emoji, Array.from(set)])
+          )
+        }));
+        return callback({
+          roomCode: code,
+          messages: serializedMessages,
+          participantCount: room.users.size,
+          participants
+        });
+      }
+
+      // Handle re-entry or same nickname from different socket
+      const existingUser = Array.from(room.users.entries()).find(
+        ([sid, u]) => u.nickname.toLowerCase() === nickname.toLowerCase()
+      );
+
+      if (existingUser) {
+        const [oldSocketId] = existingUser;
+        if (oldSocketId !== socket.id) {
+          // Kick the old socket and remove it from the room immediately
+          const oldSocket = io.sockets.sockets.get(oldSocketId);
+          if (oldSocket) {
+            oldSocket.emit('error-msg', 'Logged in from another location');
+            oldSocket.leave(code);
+          }
+          roomUtils.removeUserFromRoom(code, oldSocketId);
         }
       }
 
       leaveCurrentRoom();
 
-      const { room, error } = roomUtils.addUserToRoom(code, socket.id, nickname);
+      const { room: updatedRoom, error } = roomUtils.addUserToRoom(code, socket.id, nickname);
 
       if (error) {
         return callback({ error });
@@ -88,21 +116,21 @@ const socketHandler = (io) => {
       currentRoomCode = code;
       currentUserNickname = nickname;
 
+      // Update participant counts for everyone in the room INCLUDING the newcomer
+      const participants = Array.from(updatedRoom.users.values()).map(u => u.nickname);
+      io.to(code).emit('update-participants', {
+        count: updatedRoom.users.size,
+        participants
+      });
+
       // Notify others in the room
       const systemMsg = roomUtils.addSystemMessageToRoom(code, `${nickname} joined the room.`);
       socket.to(code).emit('receive-message', systemMsg);
 
-      // Update participant counts for everyone in the room
-      const participants = Array.from(room.users.values()).map(u => u.nickname);
-      io.to(code).emit('update-participants', {
-        count: room.users.size,
-        participants
-      });
-
       console.log(`${nickname} joined room: ${code}`);
 
       // Convert Set to Array for reactions serialization
-      const serializedMessages = room.messages.map(msg => ({
+      const serializedMessages = updatedRoom.messages.map(msg => ({
         ...msg,
         reactions: Object.fromEntries(
           Object.entries(msg.reactions || {}).map(([emoji, set]) => [emoji, Array.from(set)])
@@ -112,7 +140,7 @@ const socketHandler = (io) => {
       callback({
         roomCode: code,
         messages: serializedMessages,
-        participantCount: room.users.size,
+        participantCount: updatedRoom.users.size,
         participants
       });
     });
@@ -141,7 +169,7 @@ const socketHandler = (io) => {
     });
 
     // Send Message
-    socket.on('send-message', ({ text, type = 'chat', fileData = null }, callback) => {
+    socket.on('send-message', ({ text, type = 'chat', fileData = null, theme = 'blue' }, callback) => {
       if (!currentRoomCode || !currentUserNickname) {
         return callback({ error: 'Not in a room' });
       }
@@ -151,7 +179,7 @@ const socketHandler = (io) => {
         return callback({ error: 'Message cannot be empty' });
       }
 
-      const message = roomUtils.addMessageToRoom(currentRoomCode, currentUserNickname, trimmedText, type, fileData);
+      const message = roomUtils.addMessageToRoom(currentRoomCode, currentUserNickname, trimmedText, type, fileData, theme);
       if (message) {
         io.to(currentRoomCode).emit('receive-message', message);
         callback({ success: true });
@@ -182,7 +210,7 @@ const socketHandler = (io) => {
     });
 
     // File Upload
-    socket.on('upload-file', ({ name, type, data }, callback) => {
+    socket.on('upload-file', ({ name, type, data, theme = 'blue' }, callback) => {
       if (!currentRoomCode || !currentUserNickname) {
         return callback({ error: 'Not in a room' });
       }
@@ -199,7 +227,8 @@ const socketHandler = (io) => {
           currentUserNickname,
           `Shared a file: ${name}`,
           'file',
-          { fileId, name, type }
+          { fileId, name, type },
+          theme
         );
 
         io.to(currentRoomCode).emit('receive-message', fileMessage);
