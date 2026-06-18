@@ -105,7 +105,7 @@ const socketHandler = (io) => {
       const serializedMessages = room.messages.map(msg => ({
         ...msg,
         reactions: Object.fromEntries(
-          Object.entries(msg.reactions).map(([emoji, set]) => [emoji, Array.from(set)])
+          Object.entries(msg.reactions || {}).map(([emoji, set]) => [emoji, Array.from(set)])
         )
       }));
 
@@ -168,7 +168,7 @@ const socketHandler = (io) => {
       if (message) {
         // Convert Set to Array for serialization
         const serializedReactions = Object.fromEntries(
-          Object.entries(message.reactions).map(([e, set]) => [e, Array.from(set)])
+          Object.entries(message.reactions || {}).map(([e, set]) => [e, Array.from(set)])
         );
 
         io.to(currentRoomCode).emit('update-reactions', {
