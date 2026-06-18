@@ -39,9 +39,10 @@ const RoomHeader = ({ roomCode, participantCount, notificationsEnabled, setNotif
               >
                 <Copy className="w-4 h-4" />
                 {copied && (
-                <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-green-500 text-white text-[10px] rounded font-bold whitespace-nowrap">
-                  ✓ Room code copied
-                  </span>
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 bg-green-500 text-white text-xs rounded-xl font-bold whitespace-nowrap shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200 flex items-center space-x-2 z-[100]">
+                  <span className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center">✓</span>
+                  <span>Room code copied</span>
+                </div>
                 )}
               </button>
             </div>

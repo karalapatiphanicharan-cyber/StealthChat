@@ -69,8 +69,8 @@ const CreateRoom = () => {
 
               {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Creating...' : 'Create Room'}
+              <Button type="submit" className="w-full" loading={isLoading}>
+                Create Room
               </Button>
             </form>
           </div>

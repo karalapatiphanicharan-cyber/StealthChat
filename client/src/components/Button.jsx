@@ -1,7 +1,7 @@
 import React from 'react';
 
-const Button = ({ children, onClick, type = 'button', variant = 'primary', className = '', ...props }) => {
-  const baseStyles = "px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed";
+const Button = ({ children, onClick, type = 'button', variant = 'primary', className = '', loading = false, ...props }) => {
+  const baseStyles = "px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]";
 
   const variants = {
     primary: "bg-accent hover:bg-accent-hover text-white shadow-lg shadow-accent/20",
@@ -14,9 +14,17 @@ const Button = ({ children, onClick, type = 'button', variant = 'primary', class
       type={type}
       onClick={onClick}
       className={`${baseStyles} ${variants[variant]} ${className}`}
+      disabled={props.disabled || loading}
       {...props}
     >
-      {children}
+      {loading ? (
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <span>Loading...</span>
+        </div>
+      ) : (
+        children
+      )}
     </button>
   );
 };
