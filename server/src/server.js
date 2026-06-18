@@ -10,7 +10,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-  }
+  },
+  maxHttpBufferSize: 1e8 // 100MB
 });
 
 // Initialize Socket.IO Handler
