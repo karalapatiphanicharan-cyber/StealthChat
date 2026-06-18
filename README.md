@@ -6,6 +6,8 @@
 
 StealthChat is a premium, minimalist, and temporary real-time chat application designed for users who prioritize privacy and speed. No accounts, no logs, no traces.
 
+Live Demo :- stealth-chat-azure.vercel.app
+
 ## ✨ Features
 
 - **Anonymous Communication**: No registration required. Just pick a nickname and start chatting.
