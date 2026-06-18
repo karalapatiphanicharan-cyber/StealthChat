@@ -29,7 +29,8 @@ const roomUtils = {
     const room = {
       code,
       users: new Map(), // socket.id -> { nickname }
-      messages: []
+      messages: [],
+      files: new Map() // fileId -> { name, type, data }
     };
     rooms.set(code, room);
     return room;
@@ -63,7 +64,7 @@ const roomUtils = {
     return { room, user };
   },
 
-  addMessageToRoom: (code, nickname, text) => {
+  addMessageToRoom: (code, nickname, text, type = 'chat', fileData = null) => {
     const room = rooms.get(code.toUpperCase());
     if (!room) return null;
 
@@ -72,11 +73,48 @@ const roomUtils = {
       sender: nickname,
       text,
       timestamp: new Date().toISOString(),
-      type: 'chat'
+      type,
+      reactions: {}, // emoji -> Set(socketId)
+      file: fileData
     };
 
     room.messages.push(message);
     return message;
+  },
+
+  addReactionToMessage: (code, messageId, socketId, emoji) => {
+    const room = rooms.get(code.toUpperCase());
+    if (!room) return null;
+
+    const message = room.messages.find(m => m.id === messageId);
+    if (!message) return null;
+
+    if (!message.reactions[emoji]) {
+      message.reactions[emoji] = new Set();
+    }
+
+    if (message.reactions[emoji].has(socketId)) {
+      message.reactions[emoji].delete(socketId);
+    } else {
+      message.reactions[emoji].add(socketId);
+    }
+
+    return message;
+  },
+
+  addFileToRoom: (code, name, type, data) => {
+    const room = rooms.get(code.toUpperCase());
+    if (!room) return null;
+
+    const fileId = crypto.randomUUID();
+    room.files.set(fileId, { name, type, data });
+    return fileId;
+  },
+
+  getFileFromRoom: (code, fileId) => {
+    const room = rooms.get(code.toUpperCase());
+    if (!room) return null;
+    return room.files.get(fileId);
   },
 
   addSystemMessageToRoom: (code, text) => {

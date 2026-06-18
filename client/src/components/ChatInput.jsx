@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Paperclip } from 'lucide-react';
 import Button from './Button';
 
-const ChatInput = ({ onSend, disabled }) => {
+const ChatInput = ({ onSend, disabled, onTyping, onUpload }) => {
   const [value, setValue] = useState('');
   const inputRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -25,14 +26,33 @@ const ChatInput = ({ onSend, disabled }) => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if ((e.key === 'Enter' && !e.shiftKey) || (e.key === 'Enter' && e.ctrlKey)) {
       e.preventDefault();
       handleSend();
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 25 * 1024 * 1024) {
+        alert('File too large (Max 25MB)');
+        return;
+      }
+      onUpload(file, (response) => {
+        if (response.error) alert(response.error);
+      });
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className={`flex items-end space-x-2 p-4 bg-dark-card border-t border-white/5 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className="flex items-center mb-1">
+        <label className="p-2 cursor-pointer text-gray-500 hover:text-accent transition-colors">
+          <Paperclip className="w-5 h-5" />
+          <input type="file" className="hidden" onChange={handleFileChange} accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt" />
+        </label>
+      </div>
       <textarea
         ref={inputRef}
         rows="1"
@@ -42,6 +62,14 @@ const ChatInput = ({ onSend, disabled }) => {
           setValue(e.target.value);
           e.target.style.height = 'auto';
           e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+
+          if (onTyping) {
+            onTyping(true);
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => {
+              onTyping(false);
+            }, 3000);
+          }
         }}
         onKeyDown={handleKeyDown}
         placeholder={disabled ? "Privacy mode active..." : "Type a message..."}
