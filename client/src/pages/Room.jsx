@@ -9,6 +9,33 @@ import { useChat } from '../hooks/useChat';
 import { usePrivacy } from '../context/PrivacyContext';
 import socketService from '../services/socketService';
 
+const FileImage = ({ fileId, alt }) => {
+  const [src, setSrc] = useState(null);
+
+  useEffect(() => {
+    socketService.emit('get-file', { fileId }, (res) => {
+      if (res.file) setSrc(res.file.data);
+    });
+  }, [fileId]);
+
+  if (!src) {
+    return (
+      <div className="w-full h-40 bg-white/5 animate-pulse flex items-center justify-center rounded-lg">
+        <Smile className="w-8 h-8 text-white/10 animate-bounce" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="max-w-full h-auto max-h-[300px] object-contain cursor-pointer hover:opacity-90 transition-opacity"
+      onClick={() => window.open(src, '_blank')}
+    />
+  );
+};
+
 const Room = () => {
   const { roomCode } = useParams();
   const navigate = useNavigate();
@@ -209,17 +236,7 @@ const Room = () => {
                         <div className="space-y-2 min-w-[200px]">
                           {msg.file.type.startsWith('image/') ? (
                             <div className="rounded-lg overflow-hidden border border-white/10 bg-black/20">
-                              <img
-                                src="#"
-                                alt={msg.file.name}
-                                className="max-w-full h-auto max-h-[300px] object-contain cursor-pointer"
-                                onLoad={(e) => {
-                                   socketService.emit('get-file', { fileId: msg.file.fileId }, (res) => {
-                                     if (res.file) e.target.src = res.file.data;
-                                   });
-                                }}
-                                onClick={(e) => window.open(e.target.src, '_blank')}
-                              />
+                              <FileImage fileId={msg.file.fileId} alt={msg.file.name} />
                             </div>
                           ) : (
                             <div className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg border border-white/10">

@@ -89,6 +89,10 @@ const roomUtils = {
     const message = room.messages.find(m => m.id === messageId);
     if (!message) return null;
 
+    if (!message.reactions) {
+      message.reactions = {};
+    }
+
     if (!message.reactions[emoji]) {
       message.reactions[emoji] = new Set();
     }
@@ -126,7 +130,8 @@ const roomUtils = {
       sender: 'System',
       text,
       timestamp: new Date().toISOString(),
-      type: 'system'
+      type: 'system',
+      reactions: {}
     };
 
     room.messages.push(message);
