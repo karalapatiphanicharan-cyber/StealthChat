@@ -50,6 +50,7 @@ const Room = () => {
   const [isWindowFocused, setIsWindowFocused] = useState(true);
   const [searchQuery, setSearchBar] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [reactionPickerMessageId, setReactionPickerMessageId] = useState(null);
   const { isPrivacyMode } = usePrivacy();
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     const saved = localStorage.getItem('stealthchat_notifications');
@@ -116,6 +117,7 @@ const Room = () => {
       if (e.key === 'Escape') {
         setIsParticipantsOpen(false);
         setIsSearchOpen(false);
+        setReactionPickerMessageId(null);
         setSearchBar('');
       }
     };
@@ -129,6 +131,8 @@ const Room = () => {
     };
   }, []);
 
+  const lastMessageIdRef = useRef(null);
+
   useEffect(() => {
     if (shouldAutoScroll) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -138,15 +142,25 @@ const Room = () => {
     // Increment unread if not auto-scrolled or window not focused
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.sender !== nickname && lastMessage.type !== 'system') {
-        if (!shouldAutoScroll || !isWindowFocused) {
-          setUnreadCount(prev => prev + 1);
-        }
 
-        // Play notification sound for new messages if enabled
-        if (notificationsEnabled && lastMessage.type === 'chat') {
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
-          audio.play().catch(e => console.log('Audio play failed:', e));
+      // Notification Logic: Only play if it's a NEW message from ANOTHER user
+      if (lastMessage.id !== lastMessageIdRef.current) {
+        const isFirstLoad = lastMessageIdRef.current === null;
+        lastMessageIdRef.current = lastMessage.id;
+
+        // Don't play sound on initial load of messages
+        if (isFirstLoad) return;
+
+        if (lastMessage.sender !== nickname && lastMessage.type !== 'system') {
+          if (!shouldAutoScroll || !isWindowFocused) {
+            setUnreadCount(prev => prev + 1);
+          }
+
+          // Play notification sound for new chat/file messages if enabled
+          if (notificationsEnabled && (lastMessage.type === 'chat' || lastMessage.type === 'file')) {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+            audio.play().catch(e => console.log('Audio play failed:', e));
+          }
         }
       }
     }
@@ -233,16 +247,16 @@ const Room = () => {
                   <div className="relative group/msg">
                     <div className={`px-4 py-2 rounded-2xl transition-all ${msg.sender === nickname ? 'bg-accent text-white rounded-tr-none' : 'bg-white/5 text-gray-200 rounded-tl-none'} ${searchQuery && msg.text && msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ? 'ring-2 ring-accent ring-offset-2 ring-offset-dark' : ''}`}>
                       {msg.type === 'file' && msg.file ? (
-                        <div className="space-y-2 min-w-[200px]">
+                        <div className="space-y-2 min-w-[200px] max-w-[300px]">
                           {msg.file.type.startsWith('image/') ? (
                             <div className="rounded-lg overflow-hidden border border-white/10 bg-black/20">
                               <FileImage fileId={msg.file.fileId} alt={msg.file.name} />
                             </div>
                           ) : (
                             <div className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg border border-white/10">
-                              <FileText className="w-8 h-8 text-accent" />
+                              <FileText className="w-8 h-8 text-accent shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{msg.file.name}</p>
+                                <p className="text-sm font-medium truncate break-all">{msg.file.name}</p>
                                 <p className="text-[10px] text-gray-500 uppercase">{msg.file.type.split('/')[1] || 'FILE'}</p>
                               </div>
                               <button
@@ -255,22 +269,41 @@ const Room = () => {
                           )}
                         </div>
                       ) : (
-                        <p className="text-sm leading-relaxed">{msg.text}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
                       )}
                     </div>
 
-                    {/* Reaction trigger */}
-                    <div className={`absolute top-0 ${msg.sender === nickname ? 'right-full mr-2' : 'left-full ml-2'} hidden group-hover/msg:flex items-center bg-dark-card border border-white/10 rounded-full p-1 shadow-xl z-10 animate-in fade-in zoom-in duration-200`}>
-                      {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(emoji => (
-                        <button
-                          key={emoji}
-                          onClick={() => sendReaction(msg.id, emoji)}
-                          className="p-1 hover:bg-white/5 rounded-full transition-transform hover:scale-125 text-sm"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                    {/* Reaction trigger button */}
+                    <button
+                      onClick={() => setReactionPickerMessageId(reactionPickerMessageId === msg.id ? null : msg.id)}
+                      className={`absolute top-0 ${msg.sender === nickname ? 'right-0 -translate-x-full' : 'left-0 translate-x-full'} p-1 bg-dark-card/80 backdrop-blur-sm border border-white/10 rounded-full shadow-lg text-gray-400 hover:text-white transition-all opacity-0 group-hover/msg:opacity-100 z-10 scale-90 hover:scale-100`}
+                    >
+                      <Smile className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Reaction picker */}
+                    {reactionPickerMessageId === msg.id && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setReactionPickerMessageId(null)}
+                        />
+                        <div className={`absolute top-0 ${msg.sender === nickname ? 'right-full mr-10' : 'left-full ml-10'} flex items-center bg-dark-card border border-white/10 rounded-full p-1 shadow-2xl z-50 animate-in fade-in zoom-in duration-200`}>
+                          {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(emoji => (
+                            <button
+                              key={emoji}
+                              onClick={() => {
+                                sendReaction(msg.id, emoji);
+                                setReactionPickerMessageId(null);
+                              }}
+                              className="p-1 hover:bg-white/5 rounded-full transition-transform hover:scale-125 text-base"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
 
                     {/* Reaction display */}
                     {msg.reactions && Object.keys(msg.reactions).length > 0 && (
