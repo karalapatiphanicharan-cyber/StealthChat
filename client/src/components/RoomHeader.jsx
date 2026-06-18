@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Copy, Users, Eye, EyeOff, LogOut, Bell, BellOff } from 'lucide-react';
+import { usePrivacy } from '../context/PrivacyContext';
 
-const RoomHeader = ({ roomCode, participantCount, isPrivacyMode, setIsPrivacyMode, notificationsEnabled, setNotificationsEnabled }) => {
+const RoomHeader = ({ roomCode, participantCount, notificationsEnabled, setNotificationsEnabled }) => {
   const [copied, setCopied] = useState(false);
   const [isHidden, setIsHidden] = useState(true);
+  const { isPrivacyMode, togglePrivacyMode } = usePrivacy();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(roomCode);
@@ -67,7 +69,7 @@ const RoomHeader = ({ roomCode, participantCount, isPrivacyMode, setIsPrivacyMod
         </button>
 
         <button
-          onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+          onClick={togglePrivacyMode}
           className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors border text-sm font-medium ${isPrivacyMode ? 'bg-accent/20 border-accent text-accent' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'}`}
         >
           <Shield className="w-4 h-4" />
