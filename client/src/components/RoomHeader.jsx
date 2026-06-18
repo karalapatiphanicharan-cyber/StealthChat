@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Copy, Users, Eye, EyeOff } from 'lucide-react';
+import { Shield, Copy, Users, Eye, EyeOff, LogOut, Bell, BellOff } from 'lucide-react';
 
-const RoomHeader = ({ roomCode, participantCount }) => {
+const RoomHeader = ({ roomCode, participantCount, isPrivacyMode, setIsPrivacyMode, notificationsEnabled, setNotificationsEnabled }) => {
   const [copied, setCopied] = useState(false);
   const [isHidden, setIsHidden] = useState(true);
 
@@ -37,8 +37,8 @@ const RoomHeader = ({ roomCode, participantCount }) => {
               >
                 <Copy className="w-4 h-4" />
                 {copied && (
-                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-accent text-white text-[10px] rounded font-bold">
-                    Copied!
+                <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-green-500 text-white text-[10px] rounded font-bold whitespace-nowrap">
+                  ✓ Room code copied
                   </span>
                 )}
               </button>
@@ -57,10 +57,35 @@ const RoomHeader = ({ roomCode, participantCount }) => {
         </div>
       </div>
 
-      <button className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-sm font-medium text-white">
-        <Shield className="w-4 h-4 text-accent" />
-        <span className="hidden xs:inline">Privacy Mode</span>
-      </button>
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+          className={`p-2 rounded-full transition-colors border ${notificationsEnabled ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}
+          title={notificationsEnabled ? "Notifications ON" : "Notifications OFF"}
+        >
+          {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+        </button>
+
+        <button
+          onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors border text-sm font-medium ${isPrivacyMode ? 'bg-accent/20 border-accent text-accent' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'}`}
+        >
+          <Shield className="w-4 h-4" />
+          <span className="hidden xs:inline">{isPrivacyMode ? 'Disable Privacy' : 'Privacy Mode'}</span>
+        </button>
+
+        <button
+          onClick={() => {
+            if (window.confirm("Leave this room?\n\nYou will disconnect from the chat.")) {
+              window.location.href = "/";
+            }
+          }}
+          className="p-2 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-colors border border-red-500/20"
+          title="Leave Room"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 };

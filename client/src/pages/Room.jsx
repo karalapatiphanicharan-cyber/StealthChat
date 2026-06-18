@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import RoomHeader from '../components/RoomHeader';
+import { Shield } from 'lucide-react';
 import ChatInput from '../components/ChatInput';
 import EmptyState from '../components/EmptyState';
 import { useChat } from '../hooks/useChat';
@@ -14,11 +15,44 @@ const Room = () => {
   const { messages, participantCount, error, sendMessage } = useChat(roomCode, nickname);
   const messagesContainerRef = useRef(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('stealthchat_notifications');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('stealthchat_notifications', JSON.stringify(notificationsEnabled));
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    if (isPrivacyMode) {
+      document.title = "Offline";
+      const favicon = document.querySelector("link[rel*='icon']");
+      if (favicon) {
+        favicon.href = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23222%22/></svg>";
+      }
+    } else {
+      document.title = "StealthChat";
+      const favicon = document.querySelector("link[rel*='icon']");
+      if (favicon) {
+        favicon.href = "/favicon.ico";
+      }
+    }
+  }, [isPrivacyMode]);
 
   useEffect(() => {
     if (!nickname) {
       navigate('/join');
     }
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [nickname, navigate]);
 
   useEffect(() => {
@@ -39,20 +73,53 @@ const Room = () => {
     if (shouldAutoScroll) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, shouldAutoScroll]);
+
+    // Play notification sound for new messages if enabled
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (notificationsEnabled && lastMessage.sender !== nickname && lastMessage.type === 'chat') {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+        audio.play().catch(e => console.log('Audio play failed:', e));
+      }
+    }
+  }, [messages, shouldAutoScroll, notificationsEnabled, nickname]);
 
   return (
     <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full bg-dark-card/50 border-x border-white/5 shadow-2xl">
-      <RoomHeader roomCode={roomCode} participantCount={participantCount} />
+      <RoomHeader
+        roomCode={roomCode}
+        participantCount={participantCount}
+        isPrivacyMode={isPrivacyMode}
+        setIsPrivacyMode={setIsPrivacyMode}
+        notificationsEnabled={notificationsEnabled}
+        setNotificationsEnabled={setNotificationsEnabled}
+      />
 
-      <div
-        ref={messagesContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth min-h-0 space-y-4"
-      >
-        {messages.length === 0 ? (
-          <EmptyState />
-        ) : (
+      {isPrivacyMode ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 animate-in fade-in duration-500">
+          <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-2">
+            <Shield className="w-10 h-10 text-gray-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-500">Privacy Mode Enabled</h2>
+          <p className="text-gray-600 max-w-xs">
+            Chat is hidden. You are still connected and will receive messages in the background.
+          </p>
+          <button
+            onClick={() => setIsPrivacyMode(false)}
+            className="px-6 py-2 bg-white/5 hover:bg-white/10 text-gray-400 rounded-full transition-colors border border-white/10 text-sm font-medium"
+          >
+            Restore Chat
+          </button>
+        </div>
+      ) : (
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth min-h-0 space-y-4"
+        >
+          {messages.length === 0 ? (
+            <EmptyState />
+          ) : (
           messages.map((msg) => (
             <div
               key={msg.id}
@@ -84,11 +151,12 @@ const Room = () => {
               )}
             </div>
           ))
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
 
-      <ChatInput onSend={sendMessage} />
+      <ChatInput onSend={sendMessage} disabled={isPrivacyMode} />
     </div>
   );
 };
