@@ -10,8 +10,7 @@ export const useChat = (roomCode, nickname) => {
   useEffect(() => {
     const socket = socketService.connect();
 
-    socket.on('connect', () => {
-      setIsConnected(true);
+    const joinRoom = () => {
       if (roomCode && nickname) {
         socket.emit('join-room', { roomCode, nickname }, (response) => {
           if (response.error) {
@@ -22,6 +21,16 @@ export const useChat = (roomCode, nickname) => {
           }
         });
       }
+    };
+
+    if (socket.connected) {
+      setIsConnected(true);
+      joinRoom();
+    }
+
+    socket.on('connect', () => {
+      setIsConnected(true);
+      joinRoom();
     });
 
     socket.on('disconnect', () => {
