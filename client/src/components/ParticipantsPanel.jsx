@@ -1,7 +1,7 @@
 import React from 'react';
-import { Users, X } from 'lucide-react';
+import { Users, X, Palette } from 'lucide-react';
 
-const ParticipantsPanel = ({ participants, isOpen, onClose }) => {
+const ParticipantsPanel = ({ participants, isOpen, onClose, activeTheme, onThemeChange }) => {
   if (!isOpen) return null;
 
   return (
@@ -28,7 +28,31 @@ const ParticipantsPanel = ({ participants, isOpen, onClose }) => {
         ))}
       </div>
 
-      <div className="p-4 border-t border-white/5 bg-black/20">
+      <div className="p-4 border-t border-white/5 bg-black/20 space-y-4">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+            <Palette className="w-3 h-3" />
+            <span>Chat Theme</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {[
+              { id: 'blue', color: 'bg-blue-500' },
+              { id: 'emerald', color: 'bg-emerald-500' },
+              { id: 'purple', color: 'bg-purple-500' },
+              { id: 'amber', color: 'bg-amber-500' },
+              { id: 'crimson', color: 'bg-red-500' }
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onThemeChange(t.id)}
+                className={`w-6 h-6 rounded-full ${t.color} transition-all ${
+                  activeTheme === t.id ? 'ring-2 ring-white ring-offset-2 ring-offset-dark-card scale-110' : 'hover:scale-110'
+                }`}
+                title={t.id.charAt(0).toUpperCase() + t.id.slice(1)}
+              />
+            ))}
+          </div>
+        </div>
         <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold">
           {participants.length} connected
         </p>

@@ -31,7 +31,7 @@ const FileImage = ({ fileId, alt }) => {
     <img
       src={src}
       alt={alt}
-      className="max-w-full h-auto max-h-[300px] object-contain cursor-pointer hover:opacity-90 transition-opacity"
+      className="max-w-full w-auto h-auto max-h-[400px] object-contain cursor-pointer hover:opacity-90 transition-opacity rounded-lg"
       onClick={() => window.open(src, '_blank')}
     />
   );
@@ -45,6 +45,7 @@ const Room = () => {
 
   const { messages, participantCount, participants, typers, error, isReconnecting, isConnected, sendMessage, setTyping, sendReaction, uploadFile } = useChat(roomCode, nickname);
   const messagesContainerRef = useRef(null);
+  const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem('stealthchat_theme') || 'blue');
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -88,6 +89,11 @@ const Room = () => {
     // If we are within 100px of the bottom, allow auto-scroll
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
     setShouldAutoScroll(isAtBottom);
+  };
+
+  const handleThemeChange = (theme) => {
+    setActiveTheme(theme);
+    localStorage.setItem('stealthchat_theme', theme);
   };
 
   const handleDownload = (fileId, fileName) => {
@@ -256,7 +262,23 @@ const Room = () => {
                     </p>
                   )}
                   <div className="relative group/msg">
-                    <div className={`px-4 py-2 rounded-2xl transition-all ${msg.sender === nickname ? 'bg-accent text-white rounded-tr-none' : 'bg-white/5 text-gray-200 rounded-tl-none'} ${searchQuery && msg.text && msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ? 'ring-2 ring-accent ring-offset-2 ring-offset-dark' : ''}`}>
+                    <div className={`px-4 py-2 rounded-2xl transition-all shadow-lg shadow-black/10 ${
+                      msg.sender === nickname
+                        ? `${
+                            msg.theme === 'emerald' ? 'bg-emerald-600' :
+                            msg.theme === 'purple' ? 'bg-purple-600' :
+                            msg.theme === 'amber' ? 'bg-amber-600' :
+                            msg.theme === 'crimson' ? 'bg-red-600' :
+                            'bg-accent'
+                          } text-white rounded-tr-none`
+                        : `${
+                            msg.theme === 'emerald' ? 'bg-emerald-900/30 border border-emerald-500/20' :
+                            msg.theme === 'purple' ? 'bg-purple-900/30 border border-purple-500/20' :
+                            msg.theme === 'amber' ? 'bg-amber-900/30 border border-amber-500/20' :
+                            msg.theme === 'crimson' ? 'bg-red-900/30 border border-red-500/20' :
+                            'bg-white/5 border border-transparent'
+                          } text-gray-200 rounded-tl-none`
+                    } ${searchQuery && msg.text && msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ? 'ring-2 ring-accent ring-offset-2 ring-offset-dark' : ''}`}>
                       {msg.type === 'file' && msg.file ? (
                         <div className="space-y-2 min-w-[200px] max-w-[300px]">
                           {msg.file.type.startsWith('image/') ? (
@@ -264,11 +286,11 @@ const Room = () => {
                               <FileImage fileId={msg.file.fileId} alt={msg.file.name} />
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg border border-white/10">
+                            <div className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
                               <FileText className="w-8 h-8 text-accent shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate break-all">{msg.file.name}</p>
-                                <p className="text-[10px] text-gray-500 uppercase">{msg.file.type.split('/')[1] || 'FILE'}</p>
+                                <p className="text-sm font-medium truncate break-all leading-tight">{msg.file.name}</p>
+                                <p className="text-[10px] text-gray-500 uppercase mt-0.5">{msg.file.type.split('/')[1] || 'FILE'}</p>
                               </div>
                               <button
                                 onClick={() => handleDownload(msg.file.fileId, msg.file.name)}
@@ -323,7 +345,11 @@ const Room = () => {
                           <button
                             key={emoji}
                             onClick={() => sendReaction(msg.id, emoji)}
-                            className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${users.includes(nickname) ? 'bg-accent/20 border-accent/50 text-accent' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
+                            className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border transition-all hover:scale-105 active:scale-95 ${
+                              users.includes(nickname)
+                                ? 'bg-accent/20 border-accent/30 text-accent ring-1 ring-accent/10'
+                                : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                            }`}
                           >
                             <span>{emoji}</span>
                             <span>{users.length}</span>
@@ -349,7 +375,12 @@ const Room = () => {
           <div ref={messagesEndRef} />
         </div>
 
-      <ChatInput onSend={sendMessage} disabled={isPrivacyMode} onTyping={setTyping} onUpload={uploadFile} />
+      <ChatInput
+        onSend={(text) => sendMessage(text, 'chat', null, activeTheme)}
+        disabled={isPrivacyMode}
+        onTyping={setTyping}
+        onUpload={(file, callback) => uploadFile(file, activeTheme, callback)}
+      />
       </div>
 
       {!shouldAutoScroll && unreadCount > 0 && (
@@ -370,6 +401,8 @@ const Room = () => {
         participants={participants}
         isOpen={isParticipantsOpen}
         onClose={() => setIsParticipantsOpen(false)}
+        activeTheme={activeTheme}
+        onThemeChange={handleThemeChange}
       />
       </div>
     </div>
